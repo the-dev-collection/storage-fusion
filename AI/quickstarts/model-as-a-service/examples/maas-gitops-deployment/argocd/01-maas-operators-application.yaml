@@ -2,9 +2,10 @@ apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
   name: maas-operators
-  namespace: argocd
+  namespace: openshift-gitops
   annotations:
     argocd.argoproj.io/sync-wave: "0"
+    argocd.argoproj.io/compare-options: IgnoreExtraneous
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -12,9 +13,9 @@ spec:
   
   source:
     # Update this to your Git repository URL
-    repoURL: https://github.com/the-dev-collection/storage-fusion
+    repoURL: https://github.com/the-dev-collection/storage-fusion.git
     targetRevision: master
-    path: ./quickstarts/model-as-a-service/deploy/maas-operators
+    path: AI/quickstarts/model-as-a-service/deploy/maas-operators
     helm:
       valueFiles:
         - values.yaml
@@ -64,11 +65,13 @@ spec:
   
   destination:
     server: https://kubernetes.default.svc
-    namespace: default
+    # This namespace is not used since resources define their own namespaces
+    # But it's required by ArgoCD
+    namespace: openshift-operators
   
   syncPolicy:
     automated:
-      prune: true
+      prune: false  # Don't auto-prune to avoid deleting operator resources
       selfHeal: true
       allowEmpty: false
     
