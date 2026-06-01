@@ -12,9 +12,9 @@ spec:
   
   source:
     # Update this to your Git repository URL
-    repoURL: https://github.com/your-org/Fusion-AI.git
-    targetRevision: main
-    path: quickstarts/model-as-a-service/deploy/maas-operators
+    repoURL: https://github.com/the-dev-collection/storage-fusion
+    targetRevision: master
+    path: ./quickstarts/model-as-a-service/deploy/maas-operators
     helm:
       valueFiles:
         - values.yaml
