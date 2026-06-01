@@ -1,0 +1,109 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: maas-operators
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: maas-platform
+  
+  source:
+    # Update this to your Git repository URL
+    repoURL: https://github.com/your-org/Fusion-AI.git
+    targetRevision: main
+    path: quickstarts/model-as-a-service/deploy/maas-operators
+    helm:
+      valueFiles:
+        - values.yaml
+      # Override values inline or reference external values file
+      values: |
+        # Operator configuration
+        operators:
+          openshiftAI:
+            enabled: true
+            channel: stable-3.x
+            namespace: redhat-ods-operator
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            installPlanApproval: Automatic
+          
+          connectivityLink:
+            enabled: true
+            channel: stable
+            namespace: kuadrant-system
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            installPlanApproval: Automatic
+          
+          certManager:
+            enabled: true
+            channel: stable-v1
+            namespace: cert-manager-operator
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            installPlanApproval: Automatic
+          
+          leaderWorkerSet:
+            enabled: true
+            channel: stable-v1.0
+            namespace: openshift-lws-operator
+            source: redhat-operators
+            sourceNamespace: openshift-marketplace
+            installPlanApproval: Automatic
+          
+          grafana:
+            enabled: true
+            channel: v5
+            namespace: grafana-operator
+            source: community-operators
+            sourceNamespace: openshift-marketplace
+            installPlanApproval: Automatic
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  
+  # Ignore differences in operator-managed fields
+  ignoreDifferences:
+    - group: operators.coreos.com
+      kind: Subscription
+      jsonPointers:
+        - /status
+        - /spec/installPlanApproval
+    
+    - group: operators.coreos.com
+      kind: InstallPlan
+      jsonPointers:
+        - /status
+    
+    - group: operators.coreos.com
+      kind: ClusterServiceVersion
+      jsonPointers:
+        - /status
+        - /metadata/annotations
+  
+  # Health assessment
+  revisionHistoryLimit: 10
+
+# Made with Bob

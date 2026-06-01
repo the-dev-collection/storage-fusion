@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: argocd
+
+resources:
+  # Deploy in order using sync waves
+  - appproject.yaml
+  - 01-maas-operators-application.yaml
+  - 02-maas-platform-application.yaml
+  - 03-maas-runtime-application.yaml
+
+# Common labels for all resources
+commonLabels:
+  app.kubernetes.io/part-of: maas-platform
+  app.kubernetes.io/managed-by: argocd
+
+# Common annotations
+commonAnnotations:
+  argocd.argoproj.io/manifest-generate-paths: .
+
+# Made with Bob

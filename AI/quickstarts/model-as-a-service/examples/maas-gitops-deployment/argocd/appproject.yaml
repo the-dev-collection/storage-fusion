@@ -1,0 +1,60 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: maas-platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+spec:
+  description: MaaS Platform - Complete Models as a Service deployment on OpenShift AI
+  
+  # Source repositories
+  sourceRepos:
+    - '*'  # Allow all repositories (restrict in production to specific Git repos)
+  
+  # Destination clusters and namespaces
+  destinations:
+    - namespace: '*'
+      server: https://kubernetes.default.svc
+  
+  # Cluster resource whitelist - allows all cluster-scoped resources
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  
+  # Namespace resource whitelist - allows all namespace-scoped resources
+  namespaceResourceWhitelist:
+    - group: '*'
+      kind: '*'
+  
+  # Roles for RBAC
+  roles:
+    - name: admin
+      description: Admin role for MaaS platform - full access
+      policies:
+        - p, proj:maas-platform:admin, applications, *, maas-platform/*, allow
+      groups:
+        - maas-admins
+        - cluster-admins
+    
+    - name: developer
+      description: Developer role for MaaS platform - can sync and view
+      policies:
+        - p, proj:maas-platform:developer, applications, get, maas-platform/*, allow
+        - p, proj:maas-platform:developer, applications, sync, maas-platform/*, allow
+        - p, proj:maas-platform:developer, applications, update, maas-platform/*, allow
+      groups:
+        - maas-developers
+    
+    - name: viewer
+      description: Read-only role for MaaS platform
+      policies:
+        - p, proj:maas-platform:viewer, applications, get, maas-platform/*, allow
+      groups:
+        - maas-viewers
+  
+  # Orphaned resources - what to do with resources not in Git
+  orphanedResources:
+    warn: true
+
+# Made with Bob

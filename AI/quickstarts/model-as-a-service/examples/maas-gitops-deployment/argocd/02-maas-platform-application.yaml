@@ -1,0 +1,124 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: maas-platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "10"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: maas-platform
+  
+  source:
+    # Update this to your Git repository URL
+    repoURL: https://github.com/your-org/Fusion-AI.git
+    targetRevision: main
+    path: quickstarts/model-as-a-service/deploy/maas-platform
+    helm:
+      valueFiles:
+        - values.yaml
+      # Override values inline or reference external values file
+      values: |
+        # DataScienceCluster configuration
+        dataScienceCluster:
+          enabled: true
+          name: default-dsc
+          
+          components:
+            dashboard:
+              managementState: Managed
+            
+            workbenches:
+              managementState: Managed
+            
+            datasciencepipelines:
+              managementState: Managed
+            
+            kserve:
+              managementState: Managed
+              serving:
+                ingressGateway:
+                  certificate:
+                    type: SelfSigned
+                managementState: Managed
+                name: knative-serving
+            
+            modelmeshserving:
+              managementState: Removed
+            
+            codeflare:
+              managementState: Managed
+            
+            ray:
+              managementState: Managed
+            
+            kueue:
+              managementState: Managed
+            
+            trainingoperator:
+              managementState: Managed
+            
+            trustyai:
+              managementState: Removed
+            
+            modelregistry:
+              managementState: Managed
+              registriesNamespace: rhoai-model-registries
+        
+        # Kuadrant instance
+        kuadrant:
+          enabled: true
+          name: kuadrant
+          namespace: kuadrant-system
+        
+        # LeaderWorkerSet Operator instance
+        leaderWorkerSet:
+          enabled: true
+          name: leader-worker-set
+          namespace: openshift-lws-operator
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: default
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  
+  # Ignore differences in operator-managed fields
+  ignoreDifferences:
+    - group: datasciencecluster.opendatahub.io
+      kind: DataScienceCluster
+      jsonPointers:
+        - /status
+        - /spec/components/*/devFlags
+    
+    - group: kuadrant.io
+      kind: Kuadrant
+      jsonPointers:
+        - /status
+    
+    - group: operator.openshift.io
+      kind: LeaderWorkerSetOperator
+      jsonPointers:
+        - /status
+  
+  # Health assessment
+  revisionHistoryLimit: 10
+
+# Made with Bob

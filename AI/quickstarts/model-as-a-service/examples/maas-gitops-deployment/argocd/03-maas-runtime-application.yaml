@@ -1,0 +1,185 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: maas-runtime
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "20"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: maas-platform
+  
+  source:
+    # Update this to your Git repository URL
+    repoURL: https://github.com/your-org/Fusion-AI.git
+    targetRevision: main
+    path: quickstarts/model-as-a-service/deploy/maas-runtime
+    helm:
+      valueFiles:
+        - values.yaml
+      # Override values inline or reference external values file
+      values: |
+        # Namespace configuration
+        namespace:
+          name: maas-models
+          create: true
+          labels:
+            opendatahub.io/dashboard: "true"
+            modelmesh-enabled: "false"
+        
+        # Gateway configuration
+        gateway:
+          enabled: true
+          name: maas-gateway
+          namespace: maas-models
+          
+          listeners:
+            - name: http
+              protocol: HTTP
+              port: 80
+              allowedRoutes:
+                namespaces:
+                  from: All
+            
+            - name: https
+              protocol: HTTPS
+              port: 443
+              allowedRoutes:
+                namespaces:
+                  from: All
+              tls:
+                mode: Terminate
+                certificateRefs:
+                  - name: maas-gateway-tls
+                    kind: Secret
+        
+        # Model Registry configuration
+        modelRegistry:
+          enabled: true
+          name: model-registry
+          namespace: rhoai-model-registries
+          
+          postgres:
+            host: model-registry-db
+            port: 5432
+            database: model-registry
+            username: mlmduser
+            passwordSecret:
+              name: model-registry-db-secret
+              key: database-password
+          
+          istio:
+            gateway: maas-gateway
+            audience: https://kubernetes.default.svc
+        
+        # RBAC configuration
+        rbac:
+          enabled: true
+          serviceAccount:
+            name: maas-runtime-sa
+            create: true
+          
+          roles:
+            - name: maas-runtime-role
+              rules:
+                - apiGroups: ["serving.kserve.io"]
+                  resources: ["inferenceservices", "servingruntimes"]
+                  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+                - apiGroups: [""]
+                  resources: ["secrets", "configmaps"]
+                  verbs: ["get", "list", "watch"]
+        
+        # Tier Groups configuration
+        tierGroups:
+          enabled: true
+          groups:
+            - name: premium
+              priority: 100
+              resources:
+                requests:
+                  nvidia.com/gpu: "2"
+                limits:
+                  nvidia.com/gpu: "2"
+            
+            - name: standard
+              priority: 50
+              resources:
+                requests:
+                  nvidia.com/gpu: "1"
+                limits:
+                  nvidia.com/gpu: "1"
+            
+            - name: basic
+              priority: 10
+              resources:
+                requests:
+                  cpu: "2"
+                  memory: "8Gi"
+                limits:
+                  cpu: "4"
+                  memory: "16Gi"
+        
+        # Workbench Storage configuration
+        workbenchStorage:
+          enabled: true
+          storageClass: ""  # Use default storage class
+          size: 20Gi
+        
+        # Authentication configuration (optional)
+        authentication:
+          enabled: false
+          keycloak:
+            enabled: false
+            realm:
+              name: maas
+              admin:
+                username: admin
+                # Password should be provided via sealed secrets or external secrets
+              user:
+                username: user
+                # Password should be provided via sealed secrets or external secrets
+  
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: maas-models
+  
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+      - RespectIgnoreDifferences=true
+    
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+  
+  # Ignore differences in runtime-managed fields
+  ignoreDifferences:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      jsonPointers:
+        - /status
+    
+    - group: modelregistry.opendatahub.io
+      kind: ModelRegistry
+      jsonPointers:
+        - /status
+    
+    - group: ""
+      kind: Secret
+      jsonPointers:
+        - /data
+  
+  # Health assessment
+  revisionHistoryLimit: 10
+
+# Made with Bob
