@@ -4,6 +4,8 @@ kind: DataScienceCluster
 metadata:
   name: {{ .Values.dataScienceCluster.name }}
   namespace: {{ .Values.dataScienceCluster.namespace }}
+  annotations:
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
   labels:
     {{- include "maas-platform.labels" . | nindent 4 }}
 spec:
