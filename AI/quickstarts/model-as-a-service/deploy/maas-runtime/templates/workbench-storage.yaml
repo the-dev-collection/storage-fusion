@@ -125,8 +125,10 @@ spec:
           fi
           
           # Get the ConfigMap and Secret names from IBM Fusion OBC
-          OBC_CM=$(oc get obc {{ .Values.workbench.objectStorage.defaultBucket }} -n {{ .Values.workbench.namespace }} -o jsonpath='{.spec.objectBucketName}')
-          OBC_SECRET=$(oc get obc {{ .Values.workbench.objectStorage.defaultBucket }} -n {{ .Values.workbench.namespace }} -o jsonpath='{.spec.objectBucketName}')
+          # NooBaa creates the secret and configmap with the same name as the OBC claim
+          OBC_NAME="{{ .Values.workbench.objectStorage.defaultBucket }}"
+          OBC_CM="$OBC_NAME"
+          OBC_SECRET="$OBC_NAME"
           
           echo "IBM Fusion OBC ConfigMap: $OBC_CM"
           echo "IBM Fusion OBC Secret: $OBC_SECRET"
