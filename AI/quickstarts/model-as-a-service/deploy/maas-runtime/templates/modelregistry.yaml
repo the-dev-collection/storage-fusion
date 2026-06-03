@@ -298,7 +298,7 @@ data:
   catalog-integration-enabled: {{ .Values.modelRegistry.catalogIntegration.enabled | quote }}
   catalog-auto-register: {{ .Values.modelRegistry.catalogIntegration.autoRegister | quote }}
 ---
-apiVersion: modelregistry.opendatahub.io/v1beta1
+apiVersion: modelregistry.opendatahub.io/v1alpha1
 kind: ModelRegistry
 metadata:
   name: {{ .Values.modelRegistry.name }}
