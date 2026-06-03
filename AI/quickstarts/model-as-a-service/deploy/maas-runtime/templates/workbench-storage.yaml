@@ -85,8 +85,8 @@ metadata:
   annotations:
     description: "Setup IBM Fusion Object Storage for Workbenches"
 spec:
-  # Allow the job to run for up to 10 minutes
-  activeDeadlineSeconds: 600
+  # Allow the job to run for up to 20 minutes (OBC provisioning can take time)
+  activeDeadlineSeconds: 1200
   # Keep failed jobs for debugging
   backoffLimit: 3
   template:
